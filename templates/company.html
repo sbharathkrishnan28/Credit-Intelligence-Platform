@@ -1,0 +1,307 @@
+{% extends "base.html" %}
+
+{% block title %}{{ company[1] }} - Credit Analysis{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-6">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="{{ url_for('index') }}">Dashboard</a></li>
+                <li class="breadcrumb-item"><a href="{{ url_for('companies') }}">Companies</a></li>
+                <li class="breadcrumb-item active" aria-current="page">{{ company[1] }}</li>
+            </ol>
+        </nav>
+    </div>
+    <div class="col-md-6 text-end">
+        <div class="btn-group" role="group">
+            <button type="button" class="btn btn-outline-secondary btn-sm" id="shareButton">
+                <i class="bi bi-share"></i> Share
+            </button>
+            <button type="button" class="btn btn-outline-secondary btn-sm" id="exportButton">
+                <i class="bi bi-download"></i> Export Report
+            </button>
+        </div>
+    </div>
+</div>
+
+<div class="row mb-4">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="card-title mb-0">Credit Score History</h5>
+                <div class="btn-group btn-group-sm" role="group" id="timePeriodFilter">
+                    <button type="button" class="btn btn-outline-primary active" data-period="30">30D</button>
+                    <button type="button" class="btn btn-outline-primary" data-period="90">90D</button>
+                    <button type="button" class="btn btn-outline-primary" data-period="365">1Y</button>
+                </div>
+            </div>
+            <div class="card-body">
+                <canvas id="scoreChart" width="400" height="200"></canvas>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4">
+        <div class="card mb-4">
+            <div class="card-body text-center">
+                {% set score = company[4] %}
+                {% if score >= 80 %}
+                    {% set bg_color = 'bg-success' %}
+                    {% set rating = 'Excellent' %}
+                {% elif score >= 60 %}
+                    {% set bg_color = 'bg-info' %}
+                    {% set rating = 'Good' %}
+                {% elif score >= 40 %}
+                    {% set bg_color = 'bg-warning' %}
+                    {% set rating = 'Fair' %}
+                {% else %}
+                    {% set bg_color = 'bg-danger' %}
+                    {% set rating = 'Poor' %}
+                {% endif %}
+                
+                <div class="display-4 fw-bold {{ bg_color }} text-white p-3 rounded-circle d-inline-block">
+                    {{ score }}
+                </div>
+                <h5 class="mt-3">Current Credit Score</h5>
+                <span class="badge {{ bg_color }}">{{ rating }}</span>
+                
+                <div class="mt-3">
+                    <span class="text-success"><i class="bi bi-arrow-up"></i> 2.5%</span>
+                    <span class="text-muted"> from last week</span>
+                </div>
+            </div>
+        </div>
+        
+        <div class="card">
+            <div class="card-header">
+                <h6 class="card-title mb-0">Key Metrics</h6>
+            </div>
+            <div class="card-body">
+                <div class="d-flex justify-content-between mb-2">
+                    <span>Volatility</span>
+                    <span class="fw-bold">0.32</span>
+                </div>
+                <div class="d-flex justify-content-between mb-2">
+                    <span>P/E Ratio</span>
+                    <span class="fw-bold">24.7</span>
+                </div>
+                <div class="d-flex justify-content-between mb-2">
+                    <span>Debt-to-Equity</span>
+                    <span class="fw-bold">0.45</span>
+                </div>
+                <div class="d-flex justify-content-between">
+                    <span>Revenue Growth</span>
+                    <span class="fw-bold text-success">+8.2%</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">Feature Importance</h5>
+            </div>
+            <div class="card-body">
+                <canvas id="importanceChart" width="400" height="250"></canvas>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="card-title mb-0">Recent News & Events</h5>
+                <span class="badge bg-primary">{{ news|length }} items</span>
+            </div>
+            <div class="card-body p-0">
+                <div class="list-group list-group-flush">
+                    {% for item in news %}
+                    <div class="list-group-item">
+                        <div class="d-flex w-100 justify-content-between">
+                            <h6 class="mb-1">{{ item[2] }}</h6>
+                            <small class="text-muted">{{ item[4] }}</small>
+                        </div>
+                        <div class="d-flex align-items-center">
+                            {% if item[3] == 'positive' %}
+                                <span class="badge bg-success me-2">Positive</span>
+                            {% else %}
+                                <span class="badge bg-danger me-2">Negative</span>
+                            {% endif %}
+                            <small>Impact: {{ item[5] }} points</small>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Share Modal -->
+<div class="modal fade" id="shareModal" tabindex="-1" aria-labelledby="shareModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="shareModalLabel">Share Company Analysis</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label for="shareLink" class="form-label">Shareable Link</label>
+                    <div class="input-group">
+                        <input type="text" class="form-control" id="shareLink" value="{{ request.url }}" readonly>
+                        <button class="btn btn-outline-secondary" type="button" id="copyLinkButton">
+                            <i class="bi bi-clipboard"></i> Copy
+                        </button>
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Share via</label>
+                    <div class="d-flex gap-2">
+                        <button class="btn btn-outline-primary btn-sm">
+                            <i class="bi bi-envelope"></i> Email
+                        </button>
+                        <button class="btn btn-outline-primary btn-sm">
+                            <i class="bi bi-linkedin"></i> LinkedIn
+                        </button>
+                        <button class="btn btn-outline-primary btn-sm">
+                            <i class="bi bi-twitter"></i> Twitter
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Global variable to store the chart instance
+let scoreChartInstance = null;
+
+document.addEventListener('DOMContentLoaded', function() {
+    // Function to fetch score history data with a specific period
+    function fetchScoreData(days) {
+        fetch(`{{ url_for('api_scores', company_id=company[0]) }}?days=${days}`)
+            .then(response => response.json())
+            .then(data => {
+                const ctx = document.getElementById('scoreChart').getContext('2d');
+                
+                // Destroy previous chart instance if it exists
+                if (scoreChartInstance) {
+                    scoreChartInstance.destroy();
+                }
+                
+                // Create new chart
+                scoreChartInstance = new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: data.dates,
+                        datasets: [{
+                            label: 'Credit Score',
+                            data: data.scores,
+                            borderColor: 'rgba(54, 162, 235, 1)',
+                            backgroundColor: 'rgba(54, 162, 235, 0.1)',
+                            tension: 0.3,
+                            fill: true
+                        }]
+                    },
+                    options: {
+                        scales: {
+                            y: {
+                                min: Math.max(0, Math.min(...data.scores) - 5),
+                                max: Math.min(100, Math.max(...data.scores) + 5)
+                            }
+                        }
+                    }
+                });
+            });
+    }
+    
+    // Initial fetch for 30 days
+    fetchScoreData(30);
+    
+    // Time period filter functionality
+    const timePeriodButtons = document.querySelectorAll('#timePeriodFilter .btn');
+    timePeriodButtons.forEach(button => {
+        button.addEventListener('click', function() {
+            // Remove active class from all buttons
+            timePeriodButtons.forEach(btn => btn.classList.remove('active'));
+            // Add active class to clicked button
+            this.classList.add('active');
+            
+            // Get the period value and fetch new data
+            const period = this.dataset.period;
+            fetchScoreData(period);
+        });
+    });
+    
+    // Feature importance chart
+    const importanceCtx = document.getElementById('importanceChart').getContext('2d');
+    const importanceChart = new Chart(importanceCtx, {
+        type: 'bar',
+        data: {
+            labels: ['P/E Ratio', 'Volatility', 'Debt-to-Equity', 'Revenue Growth', 'News Sentiment'],
+            datasets: [{
+                label: 'Importance',
+                data: [0.25, 0.18, 0.22, 0.20, 0.15],
+                backgroundColor: 'rgba(75, 192, 192, 0.5)',
+                borderColor: 'rgba(75, 192, 192, 1)',
+                borderWidth: 1
+            }]
+        },
+        options: {
+            indexAxis: 'y',
+            scales: {
+                x: {
+                    beginAtZero: true,
+                    max: 0.3
+                }
+            }
+        }
+    });
+    
+    // Share button functionality
+    const shareButton = document.getElementById('shareButton');
+    const shareModal = new bootstrap.Modal(document.getElementById('shareModal'));
+    
+    shareButton.addEventListener('click', function() {
+        shareModal.show();
+    });
+    
+    // Copy link functionality
+    const copyLinkButton = document.getElementById('copyLinkButton');
+    const shareLinkInput = document.getElementById('shareLink');
+    
+    copyLinkButton.addEventListener('click', function() {
+        shareLinkInput.select();
+        document.execCommand('copy');
+        
+        // Show feedback
+        const originalText = copyLinkButton.innerHTML;
+        copyLinkButton.innerHTML = '<i class="bi bi-check"></i> Copied!';
+        
+        setTimeout(() => {
+            copyLinkButton.innerHTML = originalText;
+        }, 2000);
+    });
+    
+    // Export button functionality
+    const exportButton = document.getElementById('exportButton');
+    
+    exportButton.addEventListener('click', function() {
+        // In a real application, this would generate and download a PDF report
+        // For now, we'll show a confirmation message
+        alert(`Exporting report for ${company[1]}.\n\nThis would generate a PDF report in a real application.`);
+    });
+});
+</script>
+{% endblock %}

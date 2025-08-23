@@ -1,0 +1,147 @@
+{% extends "base.html" %}
+
+{% block title %}Sector Trends{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+            <h1 class="h2">Sector Trends & Analysis</h1>
+            <div class="btn-toolbar mb-2 mb-md-0">
+                <div class="btn-group me-2">
+                    <button type="button" class="btn btn-sm btn-outline-primary">Export</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mb-4">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title">Sector Performance Over Time</h5>
+            </div>
+            <div class="card-body">
+                <canvas id="sectorTrendChart" width="400" height="200"></canvas>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title">Sector Rankings</h5>
+            </div>
+            <div class="card-body">
+                <div class="list-group list-group-flush">
+                    {% for sector in sectors %}
+                    <div class="list-group-item d-flex justify-content-between align-items-center">
+                        {{ sector }}
+                        <span class="badge {% if avg_scores[loop.index0] >= 80 %}bg-success{% elif avg_scores[loop.index0] >= 60 %}bg-info{% else %}bg-warning{% endif %} rounded-pill">
+                            {{ avg_scores[loop.index0] }}
+                        </span>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title">Risk Factor Correlation</h5>
+            </div>
+            <div class="card-body">
+                <canvas id="correlationChart" width="400" height="200"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Sector trend chart
+    const trendCtx = document.getElementById('sectorTrendChart').getContext('2d');
+    const trendChart = new Chart(trendCtx, {
+        type: 'line',
+        data: {
+            labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
+            datasets: [
+                {
+                    label: 'Technology',
+                    data: [82, 84, 83, 85, 86, 87],
+                    borderColor: 'rgba(54, 162, 235, 1)',
+                    backgroundColor: 'rgba(54, 162, 235, 0.1)',
+                    tension: 0.3
+                },
+                {
+                    label: 'Financial',
+                    data: [75, 76, 77, 78, 78, 79],
+                    borderColor: 'rgba(255, 99, 132, 1)',
+                    backgroundColor: 'rgba(255, 99, 132, 0.1)',
+                    tension: 0.3
+                },
+                {
+                    label: 'Retail',
+                    data: [80, 81, 82, 83, 83, 84],
+                    borderColor: 'rgba(255, 206, 86, 1)',
+                    backgroundColor: 'rgba(255, 206, 86, 0.1)',
+                    tension: 0.3
+                }
+            ]
+        },
+        options: {
+            scales: {
+                y: {
+                    beginAtZero: false,
+                    min: 50,
+                    max: 100
+                }
+            }
+        }
+    });
+    
+    // Correlation chart
+    const corrCtx = document.getElementById('correlationChart').getContext('2d');
+    const corrChart = new Chart(corrCtx, {
+        type: 'bar',
+        data: {
+            labels: ['P/E Ratio', 'Volatility', 'Debt-to-Equity', 'Revenue Growth', 'Profit Margin'],
+            datasets: [{
+                label: 'Correlation with Credit Score',
+                data: [-0.65, -0.72, -0.58, 0.81, 0.76],
+                backgroundColor: [
+                    'rgba(255, 99, 132, 0.5)',
+                    'rgba(255, 159, 64, 0.5)',
+                    'rgba(255, 205, 86, 0.5)',
+                    'rgba(75, 192, 192, 0.5)',
+                    'rgba(54, 162, 235, 0.5)'
+                ],
+                borderColor: [
+                    'rgba(255, 99, 132, 1)',
+                    'rgba(255, 159, 64, 1)',
+                    'rgba(255, 205, 86, 1)',
+                    'rgba(75, 192, 192, 1)',
+                    'rgba(54, 162, 235, 1)'
+                ],
+                borderWidth: 1
+            }]
+        },
+        options: {
+            scales: {
+                y: {
+                    beginAtZero: false,
+                    min: -1,
+                    max: 1
+                }
+            }
+        }
+    });
+});
+</script>
+{% endblock %}

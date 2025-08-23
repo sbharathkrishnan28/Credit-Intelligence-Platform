@@ -1,0 +1,333 @@
+{% extends "base.html" %}
+
+{% block title %}Model Accuracy Analysis{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="{{ url_for('index') }}">Dashboard</a></li>
+                <li class="breadcrumb-item active" aria-current="page">Model Accuracy</li>
+            </ol>
+        </nav>
+    </div>
+</div>
+
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+            <h1 class="h2">Model Accuracy Analysis</h1>
+            <div class="btn-toolbar mb-2 mb-md-0">
+                <div class="btn-group me-2">
+                    <button type="button" class="btn btn-sm btn-outline-secondary" id="refreshAccuracy">
+                        <i class="bi bi-arrow-clockwise"></i> Refresh
+                    </button>
+                    <button type="button" class="btn btn-sm btn-outline-secondary" id="exportAccuracy">
+                        <i class="bi bi-download"></i> Export Report
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Dataset Information -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">Dataset Information</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6>Dataset Summary</h6>
+                        <ul class="list-unstyled">
+                            <li><strong>File Name:</strong> credit_scoring.csv</li>
+                            <li><strong>Number of Samples:</strong> {{ data_info.num_samples }}</li>
+                            <li><strong>Number of Features:</strong> {{ data_info.num_features }}</li>
+                            <li><strong>Target Distribution:</strong></li>
+                            <ul>
+                                {% for class, count in data_info.target_distribution.items() %}
+                                <li>Class {{ class }}: {{ count }} samples</li>
+                                {% endfor %}
+                            </ul>
+                        </ul>
+                    </div>
+                    <div class="col-md-6">
+                        <h6>Feature Names (First 6)</h6>
+                        <div class="row">
+                            {% for feature in data_info.feature_names[:6] %}
+                            <div class="col-md-6">
+                                <span class="badge bg-secondary mb-1">{{ feature }}</span>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Model Metrics -->
+<div class="row mb-4">
+    <!-- Key Metrics Cards -->
+    <div class="col-md-3">
+        <div class="card text-center">
+            <div class="card-body">
+                <h5 class="card-title">Overall Accuracy</h5>
+                <div class="display-4 fw-bold text-primary">{{ (model_metrics.overall_accuracy * 100)|round(1) }}%</div>
+                <p class="text-muted">Classification Accuracy</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-center">
+            <div class="card-body">
+                <h5 class="card-title">Precision</h5>
+                <div class="display-4 fw-bold text-success">{{ (model_metrics.precision * 100)|round(1) }}%</div>
+                <p class="text-muted">Positive Predictive Value</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-center">
+            <div class="card-body">
+                <h5 class="card-title">Recall</h5>
+                <div class="display-4 fw-bold text-info">{{ (model_metrics.recall * 100)|round(1) }}%</div>
+                <p class="text-muted">Sensitivity</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-center">
+            <div class="card-body">
+                <h5 class="card-title">F1 Score</h5>
+                <div class="display-4 fw-bold text-warning">{{ (model_metrics.f1_score * 100)|round(1) }}%</div>
+                <p class="text-muted">Harmonic Mean</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mb-4">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">Training History</h5>
+            </div>
+            <div class="card-body">
+                <canvas id="trainingChart" width="400" height="250"></canvas>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">Feature Importance</h5>
+            </div>
+            <div class="card-body">
+                <canvas id="featureImportanceChart" width="400" height="250"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mb-4">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">Confusion Matrix</h5>
+            </div>
+            <div class="card-body">
+                <canvas id="confusionMatrixChart" width="400" height="250"></canvas>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">Model Performance Metrics</h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-striped">
+                        <thead>
+                            <tr>
+                                <th>Metric</th>
+                                <th>Value</th>
+                                <th>Description</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>Accuracy</td>
+                                <td>{{ (model_metrics.overall_accuracy * 100)|round(1) }}%</td>
+                                <td>Overall classification accuracy</td>
+                            </tr>
+                            <tr>
+                                <td>Precision</td>
+                                <td>{{ (model_metrics.precision * 100)|round(1) }}%</td>
+                                <td>Positive predictive value</td>
+                            </tr>
+                            <tr>
+                                <td>Recall</td>
+                                <td>{{ (model_metrics.recall * 100)|round(1) }}%</td>
+                                <td>Sensitivity or true positive rate</td>
+                            </tr>
+                            <tr>
+                                <td>F1 Score</td>
+                                <td>{{ (model_metrics.f1_score * 100)|round(1) }}%</td>
+                                <td>Harmonic mean of precision and recall</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">Model Information</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6>Model Details</h6>
+                        <ul class="list-unstyled">
+                            <li><strong>Algorithm:</strong> Gradient Boosting Machine</li>
+                            <li><strong>Training Date:</strong> {{ now.strftime('%Y-%m-%d') }}</li>
+                            <li><strong>Dataset Size:</strong> {{ data_info.num_samples }} samples</li>
+                            <li><strong>Features:</strong> {{ data_info.num_features }} financial indicators</li>
+                        </ul>
+                    </div>
+                    <div class="col-md-6">
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Training history chart
+    const trainingCtx = document.getElementById('trainingChart').getContext('2d');
+    const trainingChart = new Chart(trainingCtx, {
+        type: 'line',
+        data: {
+            labels: {{ model_metrics.training_history.epochs }},
+            datasets: [
+                {
+                    label: 'Training Accuracy',
+                    data: {{ model_metrics.training_history.accuracy }},
+                    borderColor: 'rgba(54, 162, 235, 1)',
+                    backgroundColor: 'rgba(54, 162, 235, 0.1)',
+                    tension: 0.3,
+                    fill: true
+                },
+                {
+                    label: 'Validation Accuracy',
+                    data: {{ model_metrics.training_history.val_accuracy }},
+                    borderColor: 'rgba(75, 192, 192, 1)',
+                    backgroundColor: 'rgba(75, 192, 192, 0.1)',
+                    tension: 0.3,
+                    fill: true
+                }
+            ]
+        },
+        options: {
+            scales: {
+                y: {
+                    beginAtZero: false,
+                    min: 0.5,
+                    max: 1.0
+                }
+            }
+        }
+    });
+
+    // Feature importance chart
+    const featureCtx = document.getElementById('featureImportanceChart').getContext('2d');
+    const featureChart = new Chart(featureCtx, {
+        type: 'bar',
+        data: {
+            labels: {{ model_metrics.feature_importance.features | tojson }},
+            datasets: [{
+                label: 'Importance',
+                data: {{ model_metrics.feature_importance.importance }},
+                backgroundColor: 'rgba(75, 192, 192, 0.5)',
+                borderColor: 'rgba(75, 192, 192, 1)',
+                borderWidth: 1
+            }]
+        },
+        options: {
+            indexAxis: 'y',
+            scales: {
+                x: {
+                    beginAtZero: true,
+                    max: 0.3
+                }
+            }
+        }
+    });
+
+    // Confusion matrix chart
+    const confusionCtx = document.getElementById('confusionMatrixChart').getContext('2d');
+    const confusionChart = new Chart(confusionCtx, {
+        type: 'bar',
+        data: {
+            labels: {{ model_metrics.confusion_matrix.labels | tojson }},
+            datasets: [
+                {
+                    label: 'High Risk',
+                    data: {{ model_metrics.confusion_matrix.data[0] }},
+                    backgroundColor: 'rgba(255, 99, 132, 0.5)',
+                    borderColor: 'rgba(255, 99, 132, 1)',
+                    borderWidth: 1
+                },
+                {
+                    label: 'Medium Risk',
+                    data: {{ model_metrics.confusion_matrix.data[1] }},
+                    backgroundColor: 'rgba(54, 162, 235, 0.5)',
+                    borderColor: 'rgba(54, 162, 235, 1)',
+                    borderWidth: 1
+                },
+                {
+                    label: 'Low Risk',
+                    data: {{ model_metrics.confusion_matrix.data[2] }},
+                    backgroundColor: 'rgba(75, 192, 192, 极狐 0.5)',
+                    borderColor: 'rgba(75, 192, 192, 1)',
+                    borderWidth: 1
+                }
+            ]
+        },
+        options: {
+            scales: {
+                y: {
+                    beginAtZero: true
+                }
+            }
+        }
+    });
+
+    // Refresh button functionality
+    document.getElementById('refreshAccuracy').addEventListener('click', function() {
+        window.location.reload();
+    });
+
+    // Export button functionality
+    document.getElementById('exportAccuracy').addEventListener极狐('click', function() {
+        alert('Exporting accuracy report. This would generate a PDF report in a real application.');
+    });
+});
+</script>
+{% endblock %}
